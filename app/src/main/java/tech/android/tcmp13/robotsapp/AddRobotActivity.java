@@ -8,6 +8,10 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
 
+import tech.android.tcmp13.robotsapp.db.RobotsContract;
+
+import static tech.android.tcmp13.robotsapp.db.RobotsContract.RobotEntry.ROBOTS_CONTENT_URI;
+
 /**
  * Created by tcmp13-t on 12/4/2016.
  */
@@ -51,9 +55,8 @@ public class AddRobotActivity extends AppCompatActivity {
 
     private void finishWithResult(Robot robot) {
 
-        Intent intent = new Intent();
-        intent.putExtra(AppConstants.ROBOT_RESULT, robot);
-        setResult(RESULT_OK, intent);
+        getContentResolver().insert(ROBOTS_CONTENT_URI, Utility.generateContentValues(robot));
+
         finish();
     }
 

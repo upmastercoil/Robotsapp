@@ -18,6 +18,10 @@
         <activity
             android:name=".AddRobotActivity"
             android:parentActivityName=".MainActivity" />
+        <provider
+            android:authorities="tech.android.tcmp13.robotsapp"
+            android:name=".db.RobotsProvider"
+            android:exported="false" />
     </application>
 
 </manifest>

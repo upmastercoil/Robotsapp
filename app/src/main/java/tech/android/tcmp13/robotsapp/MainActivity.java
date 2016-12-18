@@ -1,70 +1,51 @@
 package tech.android.tcmp13.robotsapp;
 
+import android.app.LoaderManager;
+import android.content.ContentUris;
+import android.content.CursorLoader;
 import android.content.Intent;
+import android.content.Loader;
 import android.database.Cursor;
-import android.os.Parcelable;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
-import android.widget.SimpleCursorAdapter;
 
-import tech.android.tcmp13.robotsapp.data.DbHandler;
+import tech.android.tcmp13.robotsapp.db.DbOpenHelper;
 
-import static tech.android.tcmp13.robotsapp.data.RobotsContract.RobotEntry.*;
+import static android.provider.BaseColumns._ID;
+import static tech.android.tcmp13.robotsapp.db.RobotsContract.RobotEntry.*;
+import static tech.android.tcmp13.robotsapp.db.RobotsContract.RobotEntry.QUERY_ALL_LOADER_ID;
+import static tech.android.tcmp13.robotsapp.db.RobotsContract.RobotEntry.ROBOTS_CONTENT_URI;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener, LoaderManager.LoaderCallbacks<Cursor> {
 
-    private SimpleCursorAdapter adapter;
-    private DbHandler dbHandler;
+    private RobotsCursorAdapter adapter;
+    private DbOpenHelper dbOpenHelper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        setupDbHandler();
+        //setupDbOpenHandler();
         setupUi();
+        getLoaderManager().initLoader(QUERY_ALL_LOADER_ID, null, this);
     }
 
-    private void setupDbHandler() {
+    private void setupDbOpenHandler() {
 
-        dbHandler = new DbHandler(this);
+        dbOpenHelper = new DbOpenHelper(this);
     }
 
     private void setupUi() {
         setContentView(R.layout.activity_main);
         ListView robotsListView = (ListView) findViewById(R.id.robotsListView);
-        adapter = getSimpleCursorAdapter();
+        adapter = new RobotsCursorAdapter(this, null);
         robotsListView.setAdapter(adapter);
-    }
-
-    private SimpleCursorAdapter getSimpleCursorAdapter() {
-
-        String[] from = {COLUMNS_NAME, COLUMNS_BRAND, COLUMNS_TYPE};
-        int[] to = {R.id.robotItemTitle, R.id.robotItemBrand, R.id.robotItemType};
-
-        return new SimpleCursorAdapter(this, //The Context
-                R.layout.list_item_robot,//Each item's layout
-                null, //Cursor will be updated at onStart
-                from, //The Table Cols
-                to, //The views' ids to load the cols content by the SAME ORDER
-                0); //Flag for querying, almost always unnecessary
-    }
-
-    @Override
-    protected void onStart() {
-
-        super.onStart();
-        updateAdapterCursor(dbHandler.queryAll());
-    }
-
-    @Override
-    protected void onStop() {
-
-        super.onStop();
-        updateAdapterCursor(null);
     }
 
     /**
@@ -74,21 +55,6 @@ public class MainActivity extends AppCompatActivity {
         Cursor oldCursor = adapter.swapCursor(cursor);
         if (oldCursor != null)
             oldCursor.close();
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-
-        if (requestCode != 169) {
-            super.onActivityResult(requestCode, resultCode, data);
-            return;
-        }
-
-        if (resultCode != RESULT_OK)
-            return;
-
-        Robot robot = data.getParcelableExtra(AppConstants.ROBOT_RESULT);
-        dbHandler.insert(robot);
     }
 
     @Override
@@ -103,10 +69,56 @@ public class MainActivity extends AppCompatActivity {
 
         switch (item.getItemId()) {
             case R.id.addRobotActionItem:
-                startActivityForResult(new Intent(this, AddRobotActivity.class), 169);
+                startActivity(new Intent(this, AddRobotActivity.class));
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+        Intent intent = new Intent(this, AddRobotActivity.class);
+        intent.setData(ContentUris.withAppendedId(ROBOTS_CONTENT_URI, l));
+        startActivity(intent);
+    }
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+        //updateAdapterCursor(null);
+    }
+
+    @Override
+    protected void onPause() {
+
+        super.onPause();
+        //updateAdapterCursor(null);
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+
+        switch (i){
+            case QUERY_ALL_LOADER_ID:
+                return new CursorLoader(this,
+                        ROBOTS_CONTENT_URI,
+                        new String[]{_ID, COLUMNS_NAME, COLUMNS_BRAND, COLUMNS_TYPE},
+                        null, null, null);
+            default:
+                return null;
+        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
+        updateAdapterCursor(cursor);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        updateAdapterCursor(null);
     }
 }
